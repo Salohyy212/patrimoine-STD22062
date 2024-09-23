@@ -10,8 +10,7 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import java.time.LocalDateTime;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.doNothing;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
@@ -47,4 +46,33 @@ public class PatrimoineControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.possesseur").value("Zety"));
     }
+    @Test
+    public void testCreateOrUpdatePatrimoineBadRequest() throws Exception {
+        mockMvc.perform(put("/patrimoines/123")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"possesseur\":\"\"}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(content().string("Invalid patrimoine data"));
+    }
+
+    @Test
+    public void testGetPatrimoineNotFound() throws Exception {
+        when(patrimoineService.getPatrimoine("123")).thenReturn(null);
+
+        mockMvc.perform(get("/patrimoines/123"))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    public void testCreateOrUpdatePatrimoineInternalServerError() throws Exception {
+        doThrow(new RuntimeException("Service Error")).when(patrimoineService).savePatrimoine(any(String.class), any(Patrimoine.class));
+
+        mockMvc.perform(put("/patrimoines/123")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"possesseur\":\"Zety\"}"))
+                .andExpect(status().isInternalServerError())
+                .andExpect(content().string("An error occurred"));
+    }
+
+
 }
